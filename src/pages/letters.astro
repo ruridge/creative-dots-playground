@@ -1,0 +1,91 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Welcome to Astro.">
+  <canvas
+    id="canvas"
+    width="1200"
+    height="1200"
+    class="bg-neutral-900 w-[600px] h-[600px]"></canvas>
+</Layout>
+
+<script>
+  const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+  const mouseArea = 200;
+  const timeConst = 30;
+
+  const getMousePos = (evt: MouseEvent) => {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top,
+    };
+  };
+
+  function animate(draw: () => void) {
+    setTimeout(() => {
+      requestAnimationFrame(draw);
+    }, timeConst);
+  }
+
+  function draw() {
+    // Clear the canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Set up the grid of letter L's
+    const gridSize = 12;
+    const padding = 200;
+    // const cellSize = canvas.width / gridSize;
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const xPos =
+          ((canvas.width - padding) / (gridSize - 1)) * row + padding / 2;
+        const yPos =
+          ((canvas.height - padding) / (gridSize - 1)) * col + padding / 2;
+        let fontSize = 20;
+        if (
+          mousePos.x > 0 &&
+          mousePos.y > 0 &&
+          mousePos.x > xPos - mouseArea &&
+          mousePos.x < xPos + mouseArea &&
+          mousePos.y > yPos - mouseArea &&
+          mousePos.y < yPos + mouseArea
+        ) {
+          // set the font size between 20 and 80 based on the distance from the mouse
+          const targetRadiusDistance =
+            Math.abs(mousePos.x - xPos) + Math.abs(mousePos.y - yPos); // distance from the mouse
+
+          fontSize = Math.max(20, Math.min(80, 80 - targetRadiusDistance / 6));
+        }
+
+        context.font = `${fontSize}px sans-serif`;
+        // context.font = `${fontSize}px sans-serif`;
+        context.textBaseline = "middle";
+        context.textAlign = "center";
+
+        // set the font color to white
+        context.fillStyle = "white";
+
+        // Draw the text
+        context.fillText("L", xPos, yPos);
+      }
+    }
+
+    // Schedule the next frame
+    animate(draw);
+  }
+
+  // Set up the mousemove event handler
+  const mousePos = { x: 0, y: 0 };
+  canvas.addEventListener("mousemove", (event) => {
+    const position = getMousePos(event);
+    mousePos.x = position.x * 2;
+    mousePos.y = position.y * 2;
+  });
+
+  // Start the animation loop
+  animate(draw);
+</script>

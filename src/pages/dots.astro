@@ -1,0 +1,164 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Welcome to Astro.">
+  <canvas
+    id="canvas"
+    width="1200"
+    height="1200"
+    class="bg-neutral-900 w-[600px] h-[600px]"></canvas>
+</Layout>
+
+<script>
+  const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+  const mouseArea = 200;
+  const timeConst = 30;
+
+  const getMousePos = (evt: MouseEvent) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top,
+    };
+  };
+
+  /* Spring */
+  const mousePosition = { x: 0, y: 0 };
+
+  function animate(draw: () => void) {
+    setTimeout(() => {
+      requestAnimationFrame(draw);
+    }, timeConst);
+  }
+
+  class Dot {
+    x: number;
+    y: number;
+    radius: number;
+    originalRadius: number;
+    targetRadius: number;
+    vRadius: number;
+    colour: string;
+
+    constructor(x: number, y: number, radius: number, colour: string) {
+      this.x = x;
+      this.y = y;
+      this.radius = radius;
+      this.originalRadius = radius;
+      this.targetRadius = radius;
+      this.vRadius = 0;
+      this.colour = colour;
+    }
+
+    draw() {
+      context.fillStyle = this.colour;
+      context.beginPath();
+      context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+      context.fill();
+    }
+
+    inMouseRadius() {
+      return (
+        mousePosition.x > 0 &&
+        mousePosition.y > 0 &&
+        mousePosition.x > this.x - mouseArea &&
+        mousePosition.x < this.x + mouseArea &&
+        mousePosition.y > this.y - mouseArea &&
+        mousePosition.y < this.y + mouseArea
+      );
+    }
+
+    update() {
+      // Hover effect
+      if (this.inMouseRadius()) {
+        const targetRadiusDistance =
+          Math.abs(mousePosition.x - this.x) +
+          Math.abs(mousePosition.y - this.y);
+        this.radius =
+          this.originalRadius +
+          20 * (1 - targetRadiusDistance / (mouseArea * 2)); // Max 10
+      } else if (this.radius !== this.originalRadius) {
+        this.radius = this.originalRadius;
+      }
+
+      this.draw();
+    }
+  }
+
+  class RainGrid {
+    height: number;
+    width: number;
+    size: number;
+    padding: number;
+    dots: Dot[];
+
+    constructor(size: number, dotSize: number, padding: number) {
+      this.height = 1200;
+      this.width = 1200;
+      this.size = size;
+      this.padding = padding;
+
+      this.dots = RainGrid.createDots(
+        size,
+        this.width,
+        this.height,
+        padding,
+        dotSize
+      );
+      this.draw = this.draw.bind(this);
+    }
+
+    static createDots(
+      size: number,
+      width: number,
+      height: number,
+      padding: number,
+      dotSize: number
+    ) {
+      const dots = [];
+      // Each row
+      for (let row = 0; row < size; row += 1) {
+        const x = ((width - padding) / (size - 1)) * row + padding / 2;
+
+        // Each cell
+        for (let cell = 0; cell < size; cell += 1) {
+          const y = ((height - padding) / (size - 1)) * cell + padding / 2;
+
+          dots.push(new Dot(x, y, dotSize, "white"));
+        }
+      }
+      return dots;
+    }
+
+    draw() {
+      // Clear screen
+      context.clearRect(0, 0, this.width, this.height);
+
+      this.update();
+
+      // Draw grid
+      this.dots.forEach((dot) => dot.draw());
+
+      animate(this.draw);
+    }
+
+    update() {
+      for (let dot of this.dots) {
+        dot.update();
+      }
+    }
+  }
+
+  const rain = new RainGrid(12, 2, 200);
+
+  canvas.addEventListener("mousemove", (event) => {
+    const mousePos = getMousePos(event);
+    mousePosition.x = mousePos.x * 2;
+    mousePosition.y = mousePos.y * 2;
+  });
+
+  animate(rain.draw);
+</script>
